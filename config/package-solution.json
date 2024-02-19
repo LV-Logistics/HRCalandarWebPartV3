@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "hr-calandar-web-part-v-3-client-side-solution",
+    "id": "3db3eb95-43cc-417a-9950-867cd6504be4",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.18.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "hr-calandar-web-part-v-3 description"
+      },
+      "longDescription": {
+        "default": "hr-calandar-web-part-v-3 description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "hr-calandar-web-part-v-3 Feature",
+        "description": "The feature that activates elements of the hr-calandar-web-part-v-3 solution.",
+        "id": "61d5714e-287d-47cf-a3ea-839963be4eae",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/hr-calandar-web-part-v-3.sppkg"
+  }
+}

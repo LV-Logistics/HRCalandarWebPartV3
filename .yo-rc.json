@@ -1,0 +1,21 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "16.13.0",
+    "sdksVersions": {
+      "@microsoft/microsoft-graph-client": "3.0.2",
+      "@microsoft/teams-js": "2.12.0"
+    },
+    "version": "1.18.2",
+    "libraryName": "hr-calandar-web-part-v-3",
+    "libraryId": "3db3eb95-43cc-417a-9950-867cd6504be4",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "hr-calandar-web-part-v-3",
+    "solutionShortDescription": "hr-calandar-web-part-v-3 description",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart"
+  }
+}

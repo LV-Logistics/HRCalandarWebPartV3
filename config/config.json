@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "my-hr-calendar-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/myHrCalendar/MyHrCalendarWebPart.js",
+          "manifest": "./src/webparts/myHrCalendar/MyHrCalendarWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "MyHrCalendarWebPartStrings": "lib/webparts/myHrCalendar/loc/{locale}.js"
+  }
+}
