@@ -3,12 +3,17 @@ import YearCalendar from 'js-year-calendar';
 import 'js-year-calendar/dist/js-year-calendar.css';
 import { Calendar as FullCalendar } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid'
-import 'bootstrap'; // Import Bootstrap JavaScript
-import * as jQuery from 'jquery';
-import 'bootstrap';
+
+import * as jQueryX from 'jquery';
+import * as bootstrap from 'bootstrap'
 
 import './HrCalendar.css';
 import CalendarDataSourceElement from 'js-year-calendar/dist/interfaces/CalendarDataSourceElement';
+
+import {
+  SPHttpClient,
+  SPHttpClientResponse
+} from '@microsoft/sp-http';
 
 export interface IMyHrCalandarJsWebPartProps {
 }
@@ -29,6 +34,7 @@ export interface ISPList {
   Office: ISPOffice;
   Department: ISPDepartment;
   Id: string;
+  UPN: string;
 }
 
 export interface ISPDepartment {
@@ -50,12 +56,97 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
   //                           id="listButton" title="list view" aria-pressed="false"
   //                           class="fc-listWeek-button fc-button fc-button-primary">list</button></div>
 
+  private mail = "test";
+  private department = "test";
+  private office = "test";
+
+
+  private _renderListAsync(): void {
+    this._getListData()
+      .then((response: { value: any; }) => {
+        this._renderList(response.value);
+      })
+      .catch(() => { });
+  }
+
+  private _getListData(): Promise<ISPLists> {
+    return this.context.spHttpClient.get(`https://lvlogistics.sharepoint.com/sites/SLAM/_api/web/lists/getbytitle('Users')/items?$select=Person/ID,Person/EMail,Person/Title,UPN,Department/Title,Office/Title&$expand=Office,Department,Person&$filter=Person/EMail eq'${escape(this.context.pageContext.user.email)}' &$top=1`, SPHttpClient.configurations.v1)
+      .then((response: SPHttpClientResponse) => {
+        return response.json();
+      })
+      .catch(() => { });
+  }
+
+  private _renderList(items: ISPList[]): void {
+    items.forEach((item: ISPList) => {
+      this.mail = item.UPN;
+      this.department = item.Department.Title;
+      this.office = item.Office.Title;
+      this.render2();
+
+    });
+  }
+
   public render(): void {
-    this.domElement.innerHTML = `<div id="popup">Hover over me!</div>
+    this._renderListAsync();
+  }
+
+  public render2(): void {
+
+    let lastColorIndex = -1;
+
+    // Array to store distinct colors
+    const distinctColors = [
+      '#1f78b4', // blue
+      '#33a02c', // green
+      '#e31a1c', // red
+      '#ff7f00', // orange
+      '#6a3d9a', // purple
+      '#a6cee3', // light blue
+      '#b2df8a', // light green
+      '#fb9a99', // light red
+      '#fdbf6f', // light orange
+      '#cab2d6', // light purple
+      '#008080', // teal
+      '#d95f02', // brown
+      '#7570b3', // lavender
+      '#e7298a', // pink
+      '#66a61e', // olive
+      '#fee08b', // light yellow
+      '#edf8b1', // pale green
+      '#fdb462', // orange-yellow
+      '#3182bd', // dark blue
+      '#31a354', // dark green
+      '#deebf7', // light sky blue
+      '#fdae61', // light orange
+      '#abd9e9', // light teal
+      '#fee08b', // light yellow
+      '#d73027', // dark red
+      '#4575b4', // steel blue
+      '#91bfdb', // sky blue
+      '#313695', // dark navy
+      '#a50026', // dark maroon
+      '#800080', // purple
+    ];
+
+    // Function to get a distinct color
+    function getDistinctColor() {
+      // Increment the index to get the next color
+      lastColorIndex = (lastColorIndex + 1) % distinctColors.length;
+
+      // Return the color at the current index
+      return distinctColors[lastColorIndex];
+    }
+
+    let internalMail = this.mail;
+    let internalDepartment = this.department;
+    let internalOffice = this.office;
+
+    this.domElement.innerHTML = `<div class="popup">Hover over mesdf!</div>
     <div class="grid-container">
         <!-- <div class="grid-item">
             <label for="viewSelector">Select View:</label>
-            <select id="viewSelector" onchange="toggleView()">
+            <select id="viewSelector"">
                 <option value="month">Month Calandar</option>
                 <option value="calendar">Full Calendar</option>
             </select>
@@ -63,7 +154,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         <div class="grid-item">
             <div id="viewSelectorDiv" class="hidden" style="display: inline-block;">
                 <label for="modeSelector">Mode:</label>
-                <select id="modeSelector" onchange="toggleMode()">
+                <select id="modeSelector"">
                     <option value="team">Team</option>
                     <option value="single">Single User</option>
                 </select>
@@ -98,7 +189,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
     <div id='fullCalendar'></div>
 
     <div id="YearCalendar" class="hidden">
-        <div id="fullCalendarxx" class="fc fc-media-screen fc-direction-ltr fc-theme-standard">
+        <div id="fullCalendar" class="fc fc-media-screen fc-direction-ltr fc-theme-standard">
             <div class="fc-header-toolbar fc-toolbar fc-toolbar-ltr">
                 <div class="fc-toolbar-chunk" style="width: 15%;">
                     <h2 class="fc-toolbar-title" id="fc-dom-1"> </h2>
@@ -116,26 +207,18 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         </div>
         <div id="calendar"></div>
     </div>
+    </div>
 
-    <div id="TeamMode" class="grid-container2">
-        <div class="grid-item"><button id="selectAllButton" onclick="selectAll()">Select All</button>
-            <button id="unselectAllButton" onclick="unselectAll()">Unselect All</button>
+    <div id="TeamModeContainer" class="grid-container2">
+        <div class="grid-item"><button id="selectAllButton"">Select All</button>
+            <button id="unselectAllButton"">Unselect All</button>
 
             <div id="nameContainer"></div>
         </div>
-    </div>
-
     <!-- Loading screen HTML -->
     <div id="loading-screen">
         <div id="loading-text">Loading...</div>
-    </div>
-    <div id="popup">Hover over me!</div>`;
-
-
-    /////////////////////////////////////////////////////////
-
-    
-
+    </div>`;
 
     let fullCalendarInstance: FullCalendar;
     let yearCalendarInstance: YearCalendar<CalendarDataSourceElement>;
@@ -175,8 +258,14 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
     document.getElementById("listButton")?.addEventListener('click', function () {
       toggleView("list");
     });
-    document.getElementById("modeSelector")?.addEventListener('click', function () {
+    document.getElementById("modeSelector")?.addEventListener('change', function () {
       toggleMode();
+    });
+    document.getElementById("selectAllButton")?.addEventListener('click', function () {
+      selectAll();
+    });
+    document.getElementById("unselectAllButton")?.addEventListener('click', function () {
+      unselectAll();
     });
 
 
@@ -188,52 +277,6 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
     var teamModeDiv: HTMLElement | null;
     var singleModeDiv: HTMLElement | null;
     var mode = "month";
-
-    // // Array to store distinct colors
-    // const distinctColors = [
-    //   '#1f78b4', // blue
-    //   '#33a02c', // green
-    //   '#e31a1c', // red
-    //   '#ff7f00', // orange
-    //   '#6a3d9a', // purple
-    //   '#a6cee3', // light blue
-    //   '#b2df8a', // light green
-    //   '#fb9a99', // light red
-    //   '#fdbf6f', // light orange
-    //   '#cab2d6', // light purple
-    //   '#008080', // teal
-    //   '#d95f02', // brown
-    //   '#7570b3', // lavender
-    //   '#e7298a', // pink
-    //   '#66a61e', // olive
-    //   '#fee08b', // light yellow
-    //   '#edf8b1', // pale green
-    //   '#fdb462', // orange-yellow
-    //   '#3182bd', // dark blue
-    //   '#31a354', // dark green
-    //   '#deebf7', // light sky blue
-    //   '#fdae61', // light orange
-    //   '#abd9e9', // light teal
-    //   '#fee08b', // light yellow
-    //   '#d73027', // dark red
-    //   '#4575b4', // steel blue
-    //   '#91bfdb', // sky blue
-    //   '#313695', // dark navy
-    //   '#a50026', // dark maroon
-    //   '#800080', // purple
-    // ];
-
-    // // Variable to store the index of the last picked color
-    // let lastColorIndex = -1;
-
-    // Function to get a distinct color
-    // function getDistinctColor() {
-    //   // Increment the index to get the next color
-    //   lastColorIndex = (lastColorIndex + 1) % distinctColors.length;
-
-    //   // Return the color at the current index
-    //   return distinctColors[lastColorIndex];
-    // }
 
     function toggleUser(button: HTMLElement | null) {
       if (button != null) {
@@ -255,56 +298,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       });
     }
 
-    // function getEmailFromUrl() {
-    //   const searchParams = new URLSearchParams(window.location.search);
-    //   return searchParams.get('email');
-    // }
-
-    // function getLocationFromUrl() {
-    //   const searchParams = new URLSearchParams(window.location.search);
-    //   return searchParams.get('location');
-    // }
-
-    // function getDepartmentFromUrl() {
-    //   const searchParams = new URLSearchParams(window.location.search);
-    //   return searchParams.get('department');
-    // }
-
-    // function convertToDate(item: { startDate: string | number | Date; endDate: string | number | Date; }) {
-    //   item.startDate = new Date(item.startDate);
-    //   item.endDate = new Date(item.endDate);
-    //   return item;
-    // }
-
-    // // Function to calculate the contrast ratio between two colors
-    // function getContrast(color1: any, color2: any) {
-    //   var lum1 = getLuminance(color1) + 0.05;
-    //   var lum2 = getLuminance(color2) + 0.05;
-    //   return Math.max(lum1, lum2) / Math.min(lum1, lum2);
-    // }
-
-    // // Function to calculate the relative luminance of a color
-    // function getLuminance(color: string) {
-    //   var rgb = parseInt(color.slice(1), 16);
-    //   var r = (rgb >> 16) & 0xff;
-    //   var g = (rgb >> 8) & 0xff;
-    //   var b = (rgb >> 0) & 0xff;
-
-    //   r /= 255;
-    //   g /= 255;
-    //   b /= 255;
-
-    //   r = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-    //   g = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-    //   b = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
-
-    //   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    // }
-
-
     function renderCalandarWithDataSimple() {
-
-      console.log("render");
 
       var nameButtons = document.querySelectorAll('.name-button:not(.grayed-out)');
       var innerHtmlArray = [];
@@ -327,23 +321,18 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       }
 
       let filteredJson = filterByNames(jsonData, innerHtmlArray);
-      console.log("t1");
       if (teamModeDiv) {
         if (teamModeDiv.style.display === "none") {
           filteredJson = assignRandomColorsPerDescription(filteredJson);
           createLegend(filteredJson);
           if (filteredJson) {
-            console.log("t3");
             yearCalendarInstance.setDataSource(filteredJson);
           }
         };
-
-        console.log(mode);
         if (mode === "month") {
           SetFullCalandar(filteredJson);
         } else {
           if (filteredJson) {
-            console.log(filteredJson);
             yearCalendarInstance.setDataSource(filteredJson);
           }
         }
@@ -351,59 +340,70 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       }
     }
 
-    // function renderCalandarWithData() {
-
-    //   var nameButtons = document.querySelectorAll('.name-button:not(.grayed-out)');
-    //   var innerHtmlArray: any[] = [];
-
-    //   nameButtons.forEach(function (button) {
-    //     innerHtmlArray.push(button.innerHTML);
-    //   });
-
-    //   var filteredJson = filterByNames(jsonData, innerHtmlArray);;
 
 
-    //   (<HTMLInputElement>document.querySelector('#calendar')).addEventListener('yearChanged', function (e) {
-    //     currentYear = e.currentYear;
-
-    //     var dropdown = document.getElementById('dropdown') as HTMLSelectElement; 
-    //     if (dropdown != null) {
-    //       var selectedOptionName = dropdown.options[dropdown.selectedIndex].getAttribute('name');
-    //       getLeave(selectedOptionName, currentYear.toString() + "-01-01", currentYear.toString() + "-12-01");
-    //     }
-    //   });
-
-    // }
-
-    interface DataItem {
+    interface MyData {
+      id: string;
+      name: string;
       description: string;
+      startScope: string;
+      endScope: string | null;
+      startDate: string;
+      endDate: string;
       color?: string; // Optional color property
     }
 
-    function assignRandomColorsPerDescription(dataArray: DataItem[]) {
-      const colorMap: { [description: string]: string } = {};
-
-      function getDistinctColor(): string {
-        // Implement the logic to generate a random color
-        return "#" + Math.floor(Math.random() * 16777215).toString(16);
-      }
+    function assignRandomColorsPerDescription(dataArray: MyData[]): MyData[] {
+      const colorMap: Record<string, string> = {}; // Map descriptions to colors
 
       dataArray.forEach((item) => {
         const { description } = item;
 
+        // If the description is not already in the colorMap, assign a distinct color
         if (!colorMap[description]) {
-          colorMap[description] = getDistinctColor(); // Implement getDistinctColor function
+          colorMap[description] = getDistinctColor(); // Use your getDistinctColor() function
         }
 
+        // Assign the color to the item
         item.color = colorMap[description];
       });
 
       return dataArray;
     }
 
+    // function assignRandomColorsPerDescriptionold(dataArray: any[]) {
+    //   // Create an object to store unique descriptions and their corresponding colors
+    //   let colorMap: { [x: string]: string | undefined; };
+    //   lastColorIndex = -1;
+
+    //   console.log(dataArray);
+
+    //   // Iterate through the array and assign random colors
+    //   dataArray.forEach((item) => {
+    //       const { description } = item;
+
+    //       // If the description is not already in the colorMap, assign a random color
+    //       if (!colorMap[description]) {
+    //           colorMap[description] = getDistinctColor(); // Adjust the contrast threshold as needed
+    //       }
+
+    //       // Assign the color to the item
+    //       item.color = colorMap[description];
+    //   });
+
+    //   return dataArray;
+    // }
+
     function getLeave(selectedOptionName: string | null, startDate: string, endDate: string) {
 
       showLoadingScreen();
+
+      var selectedOptionMode = (document.getElementById("modeSelector") as HTMLInputElement).value;
+
+      if (selectedOptionMode == "single") {
+        selectedOptionName = "All";
+      }
+
 
       // Get all buttons with the class name 'button'
       const buttons = document.querySelectorAll('.name-button');
@@ -415,16 +415,12 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
 
       // URL for the POST request
       const apiUrl = "https://adminfunctionslv.azurewebsites.net/api/GetHolidayForCalandar?code=WddDPiob_V3tVLDp7SLFw9KmVVq4YQB5jPaaSE6qW3b4AzFuHW4U3A==";
-
       // Data to be sent in the POST request
       const data = {
-        //upn: getEmailFromUrl(),
-        upn: "Ed.Hodson@lv-logistics.com",
+        upn: internalMail,
         type: selectedOptionName,
-        //location: getLocationFromUrl(),
-        //department: getDepartmentFromUrl(),
-        location: "Telford Road",
-        department: "LV IT",
+        location: internalOffice,
+        department: internalDepartment,
         startDate: startDate,
         endDate: endDate,
         authToken: "18ec615b-c241-4402-855b-7f8a89201477"
@@ -445,12 +441,12 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         name: string;
         description: string;
         color?: string;
-        endDate:Date
+        endDate: Date
         endScope?: string;
         id?: string;
-        startDate:Date;
+        startDate: Date;
         startScope?: string;
-      
+
       }
 
       interface NameColorMap {
@@ -463,10 +459,6 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         return item;
       }
 
-      function getDistinctColor(): string {
-        // Implement the logic to generate a random color
-        return "#" + Math.floor(Math.random() * 16777215).toString(16);
-      }
 
       fetch(apiUrl, fetchOptions)
         .then(response => {
@@ -476,7 +468,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
           return response.json();
         })
         .then((data: UserData[]) => {
-          jQuery(function () {
+          jQueryX(function () {
 
             var dropdown = document.getElementById("dropdownForUsers") as HTMLSelectElement;
 
@@ -541,25 +533,25 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
 
     }
 
-    // function selectAll() {
-    //   var buttons = document.getElementsByClassName('grayed-out');
+    function selectAll() {
+      var buttons = document.getElementsByClassName('grayed-out');
 
-    //   // Click each button in the collection
-    //   for (var i = 0; i < buttons.length; i++) {
-    //     var button = buttons[i] as HTMLElement; // Cast to HTMLElement
-    //     button.click();
-    //   }
-    // }
+      // Click each button in the collection
+      for (var i = 0; i < buttons.length; i++) {
+        var button = buttons[i] as HTMLElement; // Cast to HTMLElement
+        button.click();
+      }
+    }
 
-    // // Function to handle the "Unselect All" button click
-    // function unselectAll() {
-    //   const buttons = Array.prototype.slice.call(document.querySelectorAll('.name-button:not(.grayed-out)'));
+    // Function to handle the "Unselect All" button click
+    function unselectAll() {
+      const buttons = Array.prototype.slice.call(document.querySelectorAll('.name-button:not(.grayed-out)'));
 
 
-    //   for (let i = 0; i < buttons.length; i++) {
-    //     buttons[i].click();
-    //   }
-    // }
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].click();
+      }
+    }
 
     function createLegend(filteredJson: any[]) {
 
@@ -614,15 +606,14 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       } else {
         return " (" + inputEvent.startScope + "-" + inputEvent.endScope + (")")
       }
-
-
-
     }
+
 
     // Function to show the popup
     function showPopup(message: any) {
-      var popup = document.getElementById('popup');
-      if (popup != null) {
+      const elements = document.getElementsByClassName('popup') as HTMLCollectionOf<HTMLElement>;
+      for (let i = 0; i < elements.length; i++) {
+        const popup = elements[i];
         popup.innerHTML = message;
         popup.style.display = 'block';
       }
@@ -632,14 +623,14 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       return num < 10 ? `0${num}` : num.toString();
     }
 
-
-    // Function to hide the popup
-    // function hidePopup() {
-    //   var popup = document.getElementById('popup');
-    //   if (popup != null) {
-    //     popup.style.display = 'none';
-    //   }
-    // }
+    //Function to hide the popup
+    function hidePopup() {
+      const elements = document.getElementsByClassName('popup') as HTMLCollectionOf<HTMLElement>;
+      for (let i = 0; i < elements.length; i++) {
+        const popup = elements[i];
+        popup.style.display = 'none';
+      }
+    }
 
 
 
@@ -652,33 +643,32 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         fullCalendarInstance = new FullCalendar(calendarEl, {
           plugins: [
             dayGridPlugin
-            // any other plugins
           ],
-          initialView: 'dayGridMonth', headerToolbar: {
+          initialView: 'dayGridMonth',
+          headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'myCustomYear,dayGridMonth',//timeGridWeek,timeGridDay,listWeek
-          }, datesSet: function (e: { startStr: string; endStr: string; }) {
+            right: 'myCustomYear,dayGridMonth'//timeGridWeek,timeGridDay,listWeek
+          },
+          datesSet: function (dateInfo) {
             var dropdown = document.getElementById('dropdown') as HTMLSelectElement;
             var selectedOptionName;
-            fullCalandarLastStartDate = e.startStr.substring(0, 10);
-            fullCalandarLastEndDate = e.endStr.substring(0, 10);
+            fullCalandarLastStartDate = dateInfo.startStr.substring(0, 10);
+            fullCalandarLastEndDate = dateInfo.endStr.substring(0, 10);
             if (dropdown) {
               selectedOptionName = dropdown.options[dropdown.selectedIndex]?.getAttribute('name');
             }
             if (selectedOptionName) {
-              getLeave(selectedOptionName, e.startStr.substring(0, 10), e.endStr.substring(0, 10));
+              getLeave(selectedOptionName, dateInfo.startStr.substring(0, 10), dateInfo.endStr.substring(0, 10));
             }
-          }, eventMouseEnter: function (e) {
+          }
+          , eventMouseEnter: function (e) {
             showPopup(e.event._def.title);
 
           },
           contentHeight: "auto",
           eventMouseLeave: function (e) {
-            var popup = document.getElementById('popup');
-            if (popup) {
-              popup.style.display = 'none';
-            }
+            hidePopup();
           }, customButtons: {
             myCustomYear: {
               text: 'year',
@@ -706,46 +696,98 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       }
 
       //year calandar
+      let modal1: bootstrap.Popover;
 
       const yearCalendarEl = document.getElementById('calendar');
       if (yearCalendarEl) {
         yearCalendarInstance = new YearCalendar(yearCalendarEl, {
           enableContextMenu: true,
           loadingTemplate: "",
+          periodChanged: function (e) {
+            var dropdown = document.getElementById('dropdown') as HTMLSelectElement;
+            var selectedOptionName = dropdown.options[dropdown.selectedIndex].getAttribute('name');
+            fullCalandarLastStartDate = formatDateToYYYYMMDD(e.startDate);
+            fullCalandarLastEndDate = formatDateToYYYYMMDD(e.endDate);
+            getLeave(selectedOptionName, formatDateToYYYYMMDD(e.startDate), formatDateToYYYYMMDD(e.endDate));
+          },
 
           mouseOnDay: function (e) {
             if (e.events.length > 0) {
               var content = '';
 
               for (var i in e.events) {
-                content += '<div class="event-tooltip-content">'
-                  + '<div class="event-name" style="color:' + e.events[i].color + '">' + e.events[i].name + '</div>'
+
+                console.log(e.events[i].color);
+                content +=
+                  '<div class="event-tooltip-content">'
+                  //+ '<div class="event-name xxx" style="color:' + e.events[i].color + '">' + e.events[i].name + '</div>'
+                  + '<div class="event-name"><span class="' + getColorClassName(e.events[i].color) + '">' + e.events[i].name + '</span></div>'
                   + '<div class="event-description">' + e.events[i].name + getScopeText(e.events[i]) + '</div>'
                   + '</div>';
               }
 
-              (jQuery(e.element)as any).popover({
+              modal1 = new bootstrap.Popover(e.element, {
                 trigger: 'manual',
                 container: 'body',
                 html: true,
                 content: content
               });
 
-              (jQuery(e.element)as any).popover('show');
+              modal1.show();
             }
           },
           mouseOutDay: function (e) {
             if (e.events.length > 0) {
-              (jQuery(e.element)as any).popover('hide');
+              modal1.hide();
             }
           },
           dayContextMenu: function (e) {
-            (jQuery(e.element)as any).popover('hide');
+            modal1.hide();
           }
-         }
+        }
         );
 
       }
+    }
+
+    function getColorClassName(hexColor: string | undefined): string {
+      const colorClasses: Record<string, string> = {
+        '#1f78b4': 'blue',
+        '#33a02c': 'green',
+        '#e31a1c': 'red',
+        '#ff7f00': 'orange',
+        '#6a3d9a': 'purple',
+        '#a6cee3': 'lightblue',
+        '#b2df8a': 'lightgreen',
+        '#fb9a99': 'lightred',
+        '#fdbf6f': 'lightorange',
+        '#cab2d6': 'lightpurple',
+        '#008080': 'teal',
+        '#d95f02': 'brown',
+        '#7570b3': 'lavender',
+        '#e7298a': 'pink',
+        '#66a61e': 'olive',
+        '#fee08b': 'lightyellow',
+        '#edf8b1': 'palegreen',
+        '#fdb462': 'orange-yellow',
+        '#3182bd': 'darkblue',
+        '#31a354': 'darkgreen',
+        '#deebf7': 'lightskyblue',
+        '#fdae61': 'lightorange',
+        '#abd9e9': 'lightteal',
+        '#d73027': 'darkred',
+        '#91bfdb': 'steelblue',
+        '#313695': 'darknavy',
+        '#a50026': 'darkmaroon',
+        '#800080': 'darkpurple'
+      };
+      if (hexColor) {
+        return colorClasses[hexColor.toLowerCase()] || 'unknown';
+      } else {
+        return "";
+      }
+
+
     }
 
 
@@ -849,52 +891,50 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
     }
 
     function toggleMode() {
-
-      var selectedOptionMode = (document.getElementById("modeSelector")as HTMLInputElement).value;
+      var selectedOptionMode = (document.getElementById("modeSelector") as HTMLInputElement).value;
 
       // Toggle visibility
       if (selectedOptionMode == "single") {
         var selectedOptionName2 = "All";
         getLeave(selectedOptionName2, fullCalandarLastStartDate, fullCalandarLastEndDate);
-        if(teamModeDiv){
+        if (teamModeDiv) {
           teamModeDiv.style.display = "none";
         }
         let TeamMode = document.getElementById("TeamMode");
-        if(TeamMode){
+        if (TeamMode) {
           TeamMode.style.display = "none";
         }
-        if(singleModeDiv){
-        singleModeDiv.style.display = "block";
+        let TeamModeContainer = document.getElementById("TeamModeContainer");
+        if (TeamModeContainer) {
+          TeamModeContainer.style.display = "none";
+        }
+        if (singleModeDiv) {
+          singleModeDiv.style.display = "block";
         }
       } else {
         var dropdown = document.getElementById('dropdown') as HTMLSelectElement;
         var selectedOptionName = dropdown.options[dropdown.selectedIndex].getAttribute('name');
         getLeave(selectedOptionName, currentYear.toString() + "-01-01", currentYear.toString() + "-12-01");
-        if(singleModeDiv){
-        singleModeDiv.style.display = "none";
+        if (singleModeDiv) {
+          singleModeDiv.style.display = "none";
         }
-        if(teamModeDiv){
-        teamModeDiv.style.display = "block";
+        if (teamModeDiv) {
+          teamModeDiv.style.display = "block";
         }
         let TeamMode = document.getElementById("TeamMode");
-        if(TeamMode){
+        if (TeamMode) {
           TeamMode.style.display = "block";
+        }
+        let TeamModeContainer = document.getElementById("TeamModeContainer");
+        if (TeamModeContainer) {
+          TeamModeContainer.style.display = "block";
         }
 
       }
     }
-
-
   }
 
   protected onInit(): Promise<void> {
-
-
-
-
-
     return super.onInit();
-
-
   }
 }
