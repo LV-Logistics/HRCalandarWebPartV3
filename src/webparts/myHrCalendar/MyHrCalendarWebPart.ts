@@ -697,6 +697,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
 
       //year calandar
       let modal1: bootstrap.Popover;
+      
 
       const yearCalendarEl = document.getElementById('calendar');
       if (yearCalendarEl) {
@@ -819,6 +820,18 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
       return `${year}-${month}-${day}`;
     }
 
+    function formatDateToYYYYMMDD_addONE(dateString: string | number | Date) {
+      const inputDate = new Date(dateString);
+
+      inputDate.setDate(inputDate.getDate() + 1); // Add 1 day
+
+      const year = inputDate.getFullYear();
+      const month = padNumber(inputDate.getMonth() + 1); // Months are 0-based
+      const day = padNumber(inputDate.getDate());
+
+      return `${year}-${month}-${day}`;
+    }
+
     // Convert the array to FullCalendar event objects
     function convertToFullCalendarEvents(originalArray: any[]) {
 
@@ -826,7 +839,7 @@ export default class MyHrCalandarJsWebPart extends BaseClientSideWebPart<IMyHrCa
         const convertedEvent = {
           title: item.name + ' - ' + item.description + getScopeText(item),
           start: formatDateToYYYYMMDD(item.startDate),
-          end: formatDateToYYYYMMDD(item.endDate),
+          end: formatDateToYYYYMMDD_addONE(item.endDate),
           color: item.color // Optional: Add the color if available
         };
 
